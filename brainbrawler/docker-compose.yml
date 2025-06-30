@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: brainbrawler_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: brainbrawler
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: brainbrawler
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - brainbrawler_net
+
+  redis:
+    image: redis:alpine
+    container_name: brainbrawler_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - brainbrawler_net
+
+  backend:
+    build:
+      context: ./web-repository/backend
+      dockerfile: Dockerfile
+    container_name: brainbrawler_backend
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "3000:3000"
+    # volumes:
+    #   - ./web-repository/backend:/app # Rimosso per usare l'immagine di produzione
+    env_file:
+      - ./web-repository/backend/.env
+    networks:
+      - brainbrawler_net
+
+  frontend:
+    build:
+      context: ./web-repository/frontend
+      dockerfile: Dockerfile
+    container_name: brainbrawler_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./web-repository/frontend:/app
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - brainbrawler_net
+      
+  android-builder:
+    image: reactnativecommunity/react-native-android
+    container_name: brainbrawler_android_builder
+    restart: "no"
+    volumes:
+      - ./mobile-app/BrainBrawlerMobile:/home/node/project
+    working_dir: /home/node/project
+    # Questo container è per lo sviluppo e la compilazione manuale
+    # Eseguire 'docker-compose run android-builder bash' per accedervi
+    command: tail -f /dev/null # Mantiene il container in esecuzione
+    networks:
+      - brainbrawler_net
+
+networks:
+  brainbrawler_net:
+    driver: bridge
+    name: brainbrawler_net
+
+volumes:
+  postgres_data: 

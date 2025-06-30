@@ -1,0 +1,182 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  username       String    @unique
+  email          String    @unique
+  passwordHash   String    @map("password_hash")
+  accountType    AccountType @default(FREE) @map("account_type")
+  emailVerified  Boolean   @default(false) @map("email_verified")
+  level          Int       @default(1)
+  xp             Int       @default(0)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  questionSets   QuestionSet[]
+  musicTracks    MusicTrack[]
+  friendRequests Friendship[] @relation("Requester")
+  friendAddresses Friendship[] @relation("Addressee")
+  hostedGames    Game[]
+  gameParticipations GamePlayer[]
+  stats          UserStats?
+
+  @@map("users")
+}
+
+enum AccountType {
+  FREE
+  PREMIUM
+  ADMIN
+}
+
+model QuestionSet {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  name            String
+  description     String?
+  language        Language
+  category        String
+  totalQuestions  Int       @default(0) @map("total_questions")
+  isPublic        Boolean   @default(false) @map("is_public")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions       Question[]
+  games           Game[]
+
+  @@map("question_sets")
+}
+
+enum Language {
+  IT
+  EN
+  ES
+  DE
+  FR
+}
+
+model Question {
+  id              String      @id @default(uuid())
+  questionSetId   String      @map("question_set_id")
+  text            String
+  options         Json        // ["Option A", "Option B", "Option C", "Option D"]
+  correctAnswer   Int         @map("correct_answer") // 0-3 index
+  difficulty      Difficulty  @default(MEDIUM)
+  explanation     String?
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  questionSet     QuestionSet @relation(fields: [questionSetId], references: [id], onDelete: Cascade)
+
+  @@map("questions")
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model MusicTrack {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  fileUrl   String   @map("file_url")
+  fileSize  Int      @map("file_size")
+  duration  Int?     // in seconds
+  mood      String?  // 'energetic', 'calm', 'intense', etc.
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("music_tracks")
+}
+
+model Friendship {
+  id           String           @id @default(uuid())
+  requesterId  String           @map("requester_id")
+  addresseeId  String           @map("addressee_id")
+  status       FriendshipStatus @default(PENDING)
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  requester    User             @relation("Requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee    User             @relation("Addressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@map("friendships")
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+model Game {
+  id               String      @id @default(uuid())
+  hostId           String      @map("host_id")
+  questionSetId    String?     @map("question_set_id")
+  name             String
+  language         Language
+  maxPlayers       Int         @default(8) @map("max_players")
+  questionCount    Int         @default(10) @map("question_count")
+  timePerQuestion  Int         @default(15) @map("time_per_question") // seconds
+  isPrivate        Boolean     @default(false) @map("is_private")
+  passwordHash     String?     @map("password_hash")
+  status           GameStatus  @default(WAITING)
+  startedAt        DateTime?   @map("started_at")
+  completedAt      DateTime?   @map("completed_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  host             User        @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  questionSet      QuestionSet? @relation(fields: [questionSetId], references: [id])
+  players          GamePlayer[]
+
+  @@map("games")
+}
+
+enum GameStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+}
+
+model GamePlayer {
+  id            String   @id @default(uuid())
+  gameId        String   @map("game_id")
+  userId        String   @map("user_id")
+  finalScore    Int      @default(0) @map("final_score")
+  finalPosition Int?     @map("final_position")
+  answers       Json?    // Array of answer objects
+  joinedAt      DateTime @default(now()) @map("joined_at")
+
+  game          Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, userId])
+  @@map("game_players")
+}
+
+model UserStats {
+  id                    String   @id @default(uuid())
+  userId                String   @unique @map("user_id")
+  totalGames            Int      @default(0) @map("total_games")
+  totalWins             Int      @default(0) @map("total_wins")
+  totalScore            Int      @default(0) @map("total_score")
+  averageAccuracy       Decimal  @default(0.00) @map("average_accuracy") @db.Decimal(5,2)
+  averageResponseTime   Decimal  @default(0.00) @map("average_response_time") @db.Decimal(8,2)
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_stats")
+} 
