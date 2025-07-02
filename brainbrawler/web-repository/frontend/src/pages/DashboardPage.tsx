@@ -1,8 +1,55 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  accountType: 'FREE' | 'PREMIUM' | 'ADMIN';
+  level: number;
+  xp: number;
+  emailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const DashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const isAdmin = user?.accountType === 'ADMIN';
+
+  const fetchUsers = useCallback(async () => {
+    if (!isAdmin) return;
+    
+    setLoading(true);
+    try {
+      const response = await api.get('/auth/admin/users');
+      setUsers(response.data);
+    } catch (err: any) {
+      setError('Errore nel caricamento utenti');
+    } finally {
+      setLoading(false);
+    }
+  }, [isAdmin]);
+
+  const updateUserAccountType = async (userId: string, accountType: string) => {
+    try {
+      const response = await api.patch(`/auth/admin/users/${userId}`, { accountType });
+      setUsers(users.map(u => u.id === userId ? response.data : u));
+    } catch (err: any) {
+      setError('Errore nell\'aggiornamento utente');
+    }
+  };
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [isAdmin, fetchUsers]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-500 to-secondary-500">
@@ -32,6 +79,79 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Admin Panel */}
+          {isAdmin && (
+            <div className="mb-8 bg-purple-50 border border-purple-200 rounded-lg p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-purple-800">🔧 Pannello Amministratore</h2>
+                <button
+                  onClick={fetchUsers}
+                  disabled={loading}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {loading ? 'Caricamento...' : 'Aggiorna'}
+                </button>
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                  {error}
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo Account</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Livello</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">XP</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Azioni</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {users.map((userItem) => (
+                      <tr key={userItem.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 text-sm text-gray-900">{userItem.username}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{userItem.email}</td>
+                        <td className="px-4 py-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            userItem.accountType === 'PREMIUM' 
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : userItem.accountType === 'ADMIN'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {userItem.accountType}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{userItem.level}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{userItem.xp}</td>
+                        <td className="px-4 py-2">
+                          <select
+                            value={userItem.accountType}
+                            onChange={(e) => updateUserAccountType(userItem.id, e.target.value)}
+                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                          >
+                            <option value="FREE">FREE</option>
+                            <option value="PREMIUM">PREMIUM</option>
+                            <option value="ADMIN">ADMIN</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {users.length === 0 && !loading && (
+                <p className="text-center text-gray-500 py-4">Nessun utente trovato</p>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-blue-800 mb-2">Livello {user?.level}</h3>
@@ -60,9 +180,10 @@ const DashboardPage: React.FC = () => {
               <div className="border rounded-lg p-4">
                 <h3 className="font-medium text-gray-800 mb-2">🔐 Sistema di Autenticazione</h3>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>✅ Registrazione e Login</li>
-                  <li>✅ JWT Token Management</li>
+                  <li>✅ Registrazione con verifica email</li>
+                  <li>✅ Login con JWT Tokens</li>
                   <li>✅ Account Types (FREE/PREMIUM/ADMIN)</li>
+                  <li>✅ Pannello Admin per gestione utenti</li>
                 </ul>
               </div>
 
@@ -91,8 +212,8 @@ const DashboardPage: React.FC = () => {
                 <ul className="text-sm text-gray-600 space-y-1">
                   <li>✅ TypeScript + Tailwind CSS</li>
                   <li>✅ Authentication Context</li>
-                  <li>✅ API Service Layer</li>
-                  <li>✅ Responsive Design</li>
+                  <li>✅ Email Verification System</li>
+                  <li>✅ Admin Management Panel</li>
                 </ul>
               </div>
             </div>
@@ -114,4 +235,4 @@ const DashboardPage: React.FC = () => {
   );
 };
 
-export default DashboardPage; 
+export default DashboardPage;

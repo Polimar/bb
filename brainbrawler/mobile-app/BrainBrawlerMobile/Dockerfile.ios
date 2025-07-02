@@ -1,0 +1,33 @@
+# Dockerfile per build iOS IPA
+FROM macos-builder:latest
+
+# Install Node.js 20
+RUN curl -fsSL https://nodejs.org/dist/v20.0.0/node-v20.0.0-darwin-x64.tar.gz | tar -xz -C /usr/local --strip-components=1
+
+# Install CocoaPods
+RUN gem install cocoapods
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files first for better caching
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install --legacy-peer-deps
+
+# Copy iOS specific files
+COPY ios/ ./ios/
+COPY src/ ./src/
+COPY App.tsx ./
+COPY index.js ./
+COPY metro.config.js ./
+COPY babel.config.js ./
+
+# Install iOS dependencies
+WORKDIR /app/ios
+RUN pod install
+
+# Build IPA
+WORKDIR /app
+CMD ["npx", "react-native", "run-ios", "--configuration", "Release"] 

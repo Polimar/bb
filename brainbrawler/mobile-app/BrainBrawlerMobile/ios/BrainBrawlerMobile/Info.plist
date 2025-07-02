@@ -34,6 +34,12 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSCameraUsageDescription</key>
+	<string>BrainBrawler needs camera access for video calls during gameplay</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>BrainBrawler needs microphone access for voice chat during gameplay</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>BrainBrawler needs local network access for P2P gameplay</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

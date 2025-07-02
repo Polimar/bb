@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+android/build
+android/.gradle
+android/app/build
+ios/build
+.bundle
+.DS_Store
+*.log 
