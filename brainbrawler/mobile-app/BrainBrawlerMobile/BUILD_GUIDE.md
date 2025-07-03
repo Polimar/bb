@@ -160,4 +160,99 @@ Tutti i servizi devono essere disponibili su www.brainbrawler.com con certificat
 
 ---
 
-**🚀 BrainBrawler Mobile v1.0.0 - Ready for Production!** 
+**🚀 BrainBrawler Mobile v1.0.0 - Ready for Production!**
+
+# BrainBrawler Mobile - Guida alla Compilazione
+
+## Stato Implementazione ✅
+- ✅ **P2P System**: WebRTC completo con server election
+- ✅ **Backend Integration**: JWT auth + PostgreSQL  
+- ✅ **Emergency Failover**: Promozione automatica host
+- ✅ **TypeScript Errors**: Tutti risolti
+- ✅ **Configuration**: Pronto per backend locale
+- ✅ **Gradle Config**: Ottimizzato per 16GB RAM
+
+## Prerequisiti Sistema
+
+### Backend e Frontend (Obbligatori)
+I servizi devono essere attivi:
+```bash
+cd /home/bb/brainbrawler
+docker-compose up -d
+curl http://localhost:3000/health  # Deve rispondere 200
+curl http://localhost:3001/        # Deve rispondere 200
+```
+
+### Android Studio (Metodo Consigliato) 🎯
+
+1. **Apri Android Studio**
+2. **Import Project**: Seleziona `/home/bb/brainbrawler/mobile-app/BrainBrawlerMobile/android`
+3. **Sync Project**: Android Studio sincronizzerà automaticamente Gradle
+4. **Build APK**:
+   - Menu: Build → Build Bundle(s)/APK(s) → Build APK(s)
+   - Oppure: `./gradlew assembleDebug` dal terminale
+
+**Vantaggi Android Studio:**
+- ✅ Accesso diretto ai 16GB RAM
+- ✅ Debug integrato e error handling
+- ✅ Gradle daemon ottimizzato
+- ✅ Build incrementali più veloci
+
+### Docker (Alternativo)
+```bash
+docker exec -it brainbrawler-android-builder-1 bash
+cd /home/node/project
+npm install
+cd android && ./gradlew assembleDebug
+```
+
+## Configurazione Ottimizzata
+
+### Gradle (16GB RAM)
+```properties
+org.gradle.jvmargs=-Xmx12g -XX:MaxMetaspaceSize=4g -XX:+UseParallelGC
+org.gradle.daemon=true
+org.gradle.parallel=true
+```
+
+### Backend Locale
+L'app è configurata per:
+- **API**: `http://localhost:3000/api`
+- **WebSocket**: `ws://localhost:3000/ws`
+
+## Architettura P2P
+
+### Server Election Algorithm
+```typescript
+Score = AccountType + BatteryLevel + ConnectionQuality
+- ADMIN: 1000 pts
+- PREMIUM: 500 pts  
+- FREE: 100 pts
+```
+
+### Emergency Failover
+- Host disconnesso → Election automatica
+- FREE users possono diventare host se necessario
+- Sync real-time di game state
+
+## Troubleshooting
+
+### Android Studio Issues
+1. **Out of Memory**: Aumenta `org.gradle.jvmargs` se necessario
+2. **Sync Failed**: File → Invalidate Caches and Restart
+3. **Build Failed**: Clean Project → Rebuild Project
+
+### Errori Comuni
+- **Backend non raggiungibile**: Verifica docker-compose up
+- **Permission denied**: Aggiungi permessi WebRTC in AndroidManifest.xml
+- **TypeScript errors**: Già risolti nella versione corrente
+
+## Output APK
+**Android Studio**: `android/app/build/outputs/apk/debug/app-debug.apk`
+**Docker**: `/home/node/project/android/app/build/outputs/apk/debug/app-debug.apk`
+
+## Test Deployment
+1. Installa APK su device Android
+2. Login con: admin@brainbrawler.com / BrainBrawler2024!
+3. Crea/Unisciti a game P2P
+4. Testa server election e failover 

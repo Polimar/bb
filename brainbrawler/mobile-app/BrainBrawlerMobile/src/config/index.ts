@@ -18,8 +18,8 @@ interface Config {
 }
 
 const CONFIG: Config = {
-  API_BASE_URL: 'https://www.brainbrawler.com/api',
-  WS_URL: 'wss://www.brainbrawler.com/ws',
+  API_BASE_URL: 'http://localhost:3000/api',
+  WS_URL: 'ws://localhost:3000/ws',
   REDIS_STREAM_PREFIX: 'brainbrawler:game:',
   P2P_CONFIG: {
     MAX_PLAYERS: 8,
@@ -33,7 +33,7 @@ const CONFIG: Config = {
         urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'],
       },
       {
-        urls: ['turn:www.brainbrawler.com:3478'],
+        urls: ['turn:localhost:3478'],
         username: 'brainbrawler',
         credential: 'turn-server-secret',
       },

@@ -1,4 +1,4 @@
-FROM node:18-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN npm run build
 
 # ---
 
-FROM node:18-alpine
+FROM node:20-slim
 
 WORKDIR /app
 

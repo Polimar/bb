@@ -19,3 +19,11 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+# architectures.
+#
+#
+# def enableSeparateBuildPerCPUArchitecture = false
+#
+# By default, the gradle tasks are created for each architecture that is defined in the
+# reactNativeArchitectures property.
